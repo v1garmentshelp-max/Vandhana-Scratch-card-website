@@ -1,0 +1,399 @@
+.uf-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px) saturate(160%);
+  animation: ufFade 0.18s ease;
+}
+
+.uf-backdrop {
+  position: absolute;
+  inset: 0;
+}
+
+@keyframes ufFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.uf-modal {
+  position: relative;
+  width: min(94vw, 560px);
+  border-radius: 20px;
+  padding: 18px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0px 26px 80px rgba(0, 0, 0, 0.68);
+  animation: ufPop 0.18s ease;
+  margin: 0 auto;
+  transform: translateZ(0);
+}
+
+@keyframes ufPop {
+  from {
+    transform: translateY(10px) scale(0.985);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.uf-glow {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.uf-glow-a {
+  left: -200px;
+  top: -210px;
+  background: rgba(0, 102, 255, 0.65);
+}
+
+.uf-glow-b {
+  right: -220px;
+  bottom: -220px;
+  background: rgba(162, 0, 255, 0.65);
+}
+
+.uf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: relative;
+  z-index: 2;
+}
+
+.uf-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.uf-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: grid;
+  place-items: center;
+}
+
+.uf-mark-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0066ff, #a200ff);
+  box-shadow: 0px 0px 0px 4px rgba(0, 102, 255, 0.12);
+}
+
+.uf-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.uf-brand-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.35px;
+}
+
+.uf-brand-sub {
+  margin-top: 2px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.uf-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.uf-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.uf-close:active {
+  transform: scale(0.985);
+}
+
+.uf-close:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.uf-hero {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  z-index: 2;
+}
+
+.uf-title {
+  margin: 0;
+  font-size: 1.28rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.uf-subtitle {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.35;
+}
+
+.uf-form {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  z-index: 2;
+}
+
+.uf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.uf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.uf-label {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.uf-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.38);
+  transition: box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.uf-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.uf-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0;
+}
+
+.uf-input::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+  font-weight: 600;
+}
+
+.uf-input:disabled {
+  opacity: 0.75;
+}
+
+.uf-input-wrap:focus-within {
+  border-color: rgba(0, 102, 255, 0.7);
+  box-shadow: 0px 0px 0px 3px rgba(0, 102, 255, 0.14);
+}
+
+.uf-hint {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.58);
+  line-height: 1.25;
+  margin-top: -2px;
+}
+
+.uf-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 12px;
+  border-radius: 16px;
+  background: rgba(255, 60, 90, 0.1);
+  border: 1px solid rgba(255, 60, 90, 0.25);
+  color: rgba(255, 220, 230, 0.95);
+  font-weight: 800;
+  font-size: 0.92rem;
+}
+
+.uf-error-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 60, 90, 0.95);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.uf-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.uf-btn {
+  border: none;
+  outline: none;
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-weight: 900;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease, background 0.12s ease;
+}
+
+.uf-btn:active {
+  transform: scale(0.985);
+}
+
+.uf-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.uf-btn-primary {
+  background: linear-gradient(90deg, #0066ff, #a200ff);
+  color: #fff;
+}
+
+.uf-btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+.uf-btn-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.uf-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.uf-btn-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.uf-mini-loader {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 3px solid rgba(255, 255, 255, 0.22);
+  border-top-color: rgba(255, 255, 255, 0.95);
+  animation: ufSpin 0.8s linear infinite;
+}
+
+@keyframes ufSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.uf-footer {
+  margin-top: -4px;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.uf-kbd {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 900;
+  font-size: 0.78rem;
+  margin: 0 4px;
+}
+
+@media (max-width: 740px) {
+  .uf-modal {
+    width: min(96vw, 560px);
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .uf-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .uf-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .uf-title {
+    font-size: 1.18rem;
+  }
+
+  .uf-input-wrap {
+    border-radius: 15px;
+  }
+
+  .uf-btn {
+    border-radius: 15px;
+  }
+}

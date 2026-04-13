@@ -1,0 +1,313 @@
+:root {
+  --violet: #6c3cff;
+  --plum: #4b1baa;
+  --iris: #9b6cff;
+  --magenta: #d951c1;
+  --gold: #f7c85f;
+  --bg1: #faf2ff;
+  --bg2: #ffeef6;
+}
+
+.tara-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(12px) saturate(1.1);
+  background:
+    radial-gradient(1200px 600px at 12% -10%, rgba(108, 60, 255, .15), transparent 60%),
+    radial-gradient(900px 500px at 90% 110%, rgba(217, 81, 193, .15), transparent 62%),
+    linear-gradient(180deg, rgba(250, 242, 255, .92), rgba(255, 238, 246, .92));
+}
+
+.loader-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 28px 32px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .86));
+  border: 1px solid rgba(108, 60, 255, .18);
+  box-shadow: 0 24px 80px rgba(108, 60, 255, .20), inset 0 0 0 1px rgba(255, 255, 255, .9);
+  overflow: hidden;
+  animation: cardIn .35s ease;
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(.98)
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1)
+  }
+}
+
+.loader-logo {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 20px;
+  box-shadow: 0 16px 44px rgba(108, 60, 255, .25);
+  animation: logoBob 2.4s ease-in-out infinite;
+}
+
+@keyframes logoBob {
+
+  0%,
+  100% {
+    transform: translateY(0)
+  }
+
+  50% {
+    transform: translateY(-6px)
+  }
+}
+
+.logo-glow {
+  position: absolute;
+  top: 18px;
+  width: 160px;
+  height: 160px;
+  border-radius: 24px;
+  background: conic-gradient(from 0deg, rgba(108, 60, 255, .35), rgba(217, 81, 193, .35), rgba(247, 200, 95, .35), rgba(108, 60, 255, .35));
+  filter: blur(22px);
+  animation: spin 8s linear infinite;
+  z-index: -1;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg)
+  }
+}
+
+.loading-wave {
+  position: relative;
+  width: 320px;
+  height: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  isolation: isolate;
+}
+
+.loading-bar {
+  position: relative;
+  width: 24px;
+  height: 12px;
+  margin: 0 8px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--violet), var(--iris));
+  box-shadow:
+    0 8px 24px rgba(108, 60, 255, .35),
+    inset 0 0 0 1px rgba(255, 255, 255, .4);
+  animation: wave 1.15s ease-in-out infinite, hue 6s linear infinite;
+  transform-origin: 50% 100%;
+}
+
+.loading-bar::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, .0), rgba(255, 255, 255, .7), rgba(255, 255, 255, 0));
+  transform: translateX(-120%) skewX(-12deg);
+  animation: glint 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.loading-bar:nth-child(1) {
+  animation-delay: 0s
+}
+
+.loading-bar:nth-child(2) {
+  animation-delay: .1s
+}
+
+.loading-bar:nth-child(3) {
+  animation-delay: .2s
+}
+
+.loading-bar:nth-child(4) {
+  animation-delay: .3s
+}
+
+@keyframes wave {
+  0% {
+    height: 12px;
+    filter: saturate(.9) brightness(.98)
+  }
+
+  50% {
+    height: 62px;
+    filter: saturate(1.1) brightness(1.06)
+  }
+
+  100% {
+    height: 12px;
+    filter: saturate(.9) brightness(.98)
+  }
+}
+
+@keyframes hue {
+  to {
+    filter: hue-rotate(360deg)
+  }
+}
+
+@keyframes glint {
+  0% {
+    transform: translateX(-120%) skewX(-12deg)
+  }
+
+  50% {
+    transform: translateX(120%) skewX(-12deg)
+  }
+
+  100% {
+    transform: translateX(120%) skewX(-12deg)
+  }
+}
+
+.pulse-ring {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, rgba(108, 60, 255, .28), transparent 70%),
+    conic-gradient(from 0deg, rgba(108, 60, 255, .25), rgba(217, 81, 193, .25), rgba(247, 200, 95, .25), rgba(108, 60, 255, .25));
+  filter: blur(10px);
+  animation: ringPulse 2.6s ease-in-out infinite, spin 12s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes ringPulse {
+
+  0%,
+  100% {
+    transform: translateX(-50%) scale(.96)
+  }
+
+  50% {
+    transform: translateX(-50%) scale(1.04)
+  }
+}
+
+.sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sparkles i {
+  position: absolute;
+  left: calc((var(--i)*2.6%) - 2%);
+  top: calc((var(--i)*3.2%) % 100%);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .9);
+  opacity: .65;
+  animation: twinkle 2.1s linear infinite;
+}
+
+.sparkles i:nth-child(3n) {
+  width: 3px;
+  height: 3px;
+  background: #fff;
+  filter: drop-shadow(0 0 6px #fff6);
+}
+
+@keyframes twinkle {
+
+  0%,
+  100% {
+    opacity: .3;
+    transform: scale(.8)
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.25)
+  }
+}
+
+.confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.confetti span {
+  position: absolute;
+  top: -8vh;
+  left: calc((var(--c)*3.5%) - 3%);
+  width: 8px;
+  height: 16px;
+  border-radius: 2px;
+  transform: rotate(calc(var(--c)*11deg));
+  background: linear-gradient(180deg, var(--magenta), var(--gold));
+  box-shadow: 0 0 10px rgba(217, 81, 193, .35);
+  animation: fall calc(3s + (var(--c)*.04s)) linear infinite, sway 2s ease-in-out infinite, hue 6s linear infinite;
+  opacity: .75;
+}
+
+.confetti span:nth-child(4n) {
+  background: linear-gradient(180deg, var(--violet), #ffc7ef);
+  width: 7px;
+  height: 14px;
+}
+
+.confetti span:nth-child(5n) {
+  background: linear-gradient(180deg, #b987ff, var(--gold));
+  width: 9px;
+  height: 18px;
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(120vh) rotate(360deg)
+  }
+}
+
+@keyframes sway {
+
+  0%,
+  100% {
+    margin-left: -6px
+  }
+
+  50% {
+    margin-left: 6px
+  }
+}
+
+@media (max-width:420px) {
+  .loader-card {
+    padding: 24px
+  }
+
+  .loader-logo {
+    width: 96px;
+    height: 96px
+  }
+
+  .loading-wave {
+    width: 260px
+  }
+
+  .loading-bar {
+    margin: 0 6px
+  }
+}

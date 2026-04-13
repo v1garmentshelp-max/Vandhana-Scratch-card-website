@@ -1,0 +1,154 @@
+.jp-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  animation: jpFadeIn 0.4s ease-in-out;
+}
+
+.jp-popup-card {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: #0b0b0f;
+  border-radius: 18px;
+  overflow: hidden;
+  padding: 26px 22px;
+  box-shadow: 0px 20px 60px rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: jpPopUp 0.45s ease;
+}
+
+.jp-popup-glow {
+  position: absolute;
+  top: -70px;
+  left: -70px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(110, 0, 255, 0.45), transparent 70%);
+  filter: blur(20px);
+}
+
+.jp-popup-header {
+  text-align: center;
+}
+
+.jp-popup-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 8px;
+  letter-spacing: 0.4px;
+}
+
+.jp-popup-subtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.4;
+  margin-bottom: 18px;
+}
+
+.jp-popup-badge {
+  width: fit-content;
+  margin: 0 auto 20px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(0, 87, 255, 0.18), rgba(168, 0, 255, 0.18));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.jp-popup-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.jp-step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.jp-step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-top: 6px;
+  background: linear-gradient(180deg, #0066ff, #a200ff);
+  box-shadow: 0px 0px 12px rgba(128, 0, 255, 0.6);
+}
+
+.jp-step-title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.jp-step-desc {
+  margin: 4px 0 0;
+  font-size: 0.86rem;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.35;
+}
+
+.jp-popup-footer {
+  margin-top: 18px;
+  text-align: center;
+}
+
+.jp-popup-note {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.4;
+}
+
+@keyframes jpFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes jpPopUp {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .jp-popup-card {
+    padding: 22px 18px;
+    border-radius: 16px;
+  }
+
+  .jp-popup-title {
+    font-size: 1.55rem;
+  }
+
+  .jp-popup-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .jp-step {
+    padding: 12px 12px;
+  }
+}
