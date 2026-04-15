@@ -14,7 +14,7 @@ const initialForm = {
   city: ""
 };
 
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "https://vandhana-scratch-card-backend.vercel.app";
 
 export default function MainForm() {
   const [formData, setFormData] = useState(initialForm);
@@ -233,7 +233,7 @@ export default function MainForm() {
       setCustomerId(data.customerId || "");
       setIsFormSubmitted(true);
       setSuccessMsg("Form submitted successfully.");
-    } catch (err) {
+    } catch {
       setError("Unable to connect to server");
     } finally {
       setIsSubmitting(false);
