@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 export default function ScratchCanvas({
   width = 300,
@@ -19,6 +19,7 @@ export default function ScratchCanvas({
 
   useEffect(() => {
     const c = canvasRef.current;
+    if (!c) return;
     const ctx = c.getContext('2d');
     c.width = width;
     c.height = height;
@@ -26,22 +27,28 @@ export default function ScratchCanvas({
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
+        ctx.clearRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
       };
       img.src = coverImage;
     } else {
+      ctx.clearRect(0, 0, width, height);
       ctx.fillStyle = coverColor;
       ctx.fillRect(0, 0, width, height);
     }
   }, [width, height, coverColor, coverImage]);
 
-  const rel = (clientX, clientY) => {
-    const r = canvasRef.current.getBoundingClientRect();
+  const rel = useCallback((clientX, clientY) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const r = canvas.getBoundingClientRect();
     return { x: clientX - r.left, y: clientY - r.top };
-  };
+  }, []);
 
-  const scratch = (x, y) => {
-    const ctx = canvasRef.current.getContext('2d');
+  const scratch = useCallback((x, y) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     ctx.globalCompositeOperation = 'destination-out';
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
@@ -52,15 +59,17 @@ export default function ScratchCanvas({
     ctx.lineTo(x, y);
     ctx.stroke();
     last.current = { x, y };
-  };
+  }, [brushSize]);
 
-  const ratioCleared = () => {
+  const ratioCleared = useCallback(() => {
     const c = canvasRef.current;
+    if (!c) return 0;
     const ctx = c.getContext('2d');
     const step = 8;
     const { width: w, height: h } = c;
     const data = ctx.getImageData(0, 0, w, h).data;
-    let clear = 0, total = 0;
+    let clear = 0;
+    let total = 0;
     for (let y = 0; y < h; y += step) {
       for (let x = 0; x < w; x += step) {
         const a = data[(y * w + x) * 4 + 3];
@@ -69,13 +78,14 @@ export default function ScratchCanvas({
       }
     }
     return (clear / total) * 100;
-  };
+  }, []);
 
-  const start = (x, y) => {
+  const start = useCallback((x, y) => {
     drawing.current = true;
     last.current = { x, y };
-  };
-  const move = (x, y) => {
+  }, []);
+
+  const move = useCallback((x, y) => {
     if (!drawing.current || done) return;
     scratch(x, y);
     const now = Date.now();
@@ -87,8 +97,9 @@ export default function ScratchCanvas({
         onComplete();
       }
     }
-  };
-  const end = () => {
+  }, [done, scratch, ratioCleared, finishPercent, onComplete]);
+
+  const end = useCallback(() => {
     drawing.current = false;
     if (!done) {
       const percent = ratioCleared();
@@ -97,27 +108,45 @@ export default function ScratchCanvas({
         onComplete();
       }
     }
-  };
+  }, [done, ratioCleared, finishPercent, onComplete]);
 
   useEffect(() => {
     const wrap = wrapRef.current;
-    const onMouseDown = (e) => start(...Object.values(rel(e.clientX, e.clientY)));
-    const onMouseMove = (e) => move(...Object.values(rel(e.clientX, e.clientY)));
+    if (!wrap) return;
+
+    const onMouseDown = (e) => {
+      const { x, y } = rel(e.clientX, e.clientY);
+      start(x, y);
+    };
+
+    const onMouseMove = (e) => {
+      const { x, y } = rel(e.clientX, e.clientY);
+      move(x, y);
+    };
+
     const onTouchStart = (e) => {
       const t = e.touches[0];
-      start(...Object.values(rel(t.clientX, t.clientY)));
+      if (!t) return;
+      const { x, y } = rel(t.clientX, t.clientY);
+      start(x, y);
     };
+
     const onTouchMove = (e) => {
       const t = e.touches[0];
-      move(...Object.values(rel(t.clientX, t.clientY)));
+      if (!t) return;
+      const { x, y } = rel(t.clientX, t.clientY);
+      move(x, y);
     };
+
     const onUp = () => end();
+
     wrap.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onUp);
     wrap.addEventListener('touchstart', onTouchStart, { passive: true });
     window.addEventListener('touchmove', onTouchMove, { passive: true });
     window.addEventListener('touchend', onUp);
+
     return () => {
       wrap.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);
@@ -126,7 +155,7 @@ export default function ScratchCanvas({
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onUp);
     };
-  }, [done]);
+  }, [rel, start, move, end]);
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', width, height, touchAction: 'none' }}>
