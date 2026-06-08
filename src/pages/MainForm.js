@@ -11,7 +11,8 @@ const initialForm = {
   spouseDob: "",
   hasChildren: "",
   shoppingPreference: "",
-  city: ""
+  city: "",
+  whatsappOptIn: false
 };
 
 const API_BASE_URL = "https://vandhana-scratch-card-backend.vercel.app";
@@ -35,7 +36,10 @@ export default function MainForm() {
 
   useEffect(() => {
     if (savedData?.formData?.mobileNumber) {
-      setFormData(savedData.formData);
+      setFormData({
+        ...initialForm,
+        ...savedData.formData
+      });
       setChildren(savedData.children || []);
       setIsFormSubmitted(Boolean(savedData.isFormSubmitted));
       setCustomerId(savedData.customerId || "");
@@ -43,7 +47,12 @@ export default function MainForm() {
   }, [savedData]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, checked } = e.target;
+
+    if (name === "whatsappOptIn") {
+      setFormData((prev) => ({ ...prev, whatsappOptIn: checked }));
+      return;
+    }
 
     if (name === "mobileNumber") {
       const cleaned = value.replace(/\D/g, "").slice(0, 10);
@@ -194,6 +203,7 @@ export default function MainForm() {
       hasChildren: formData.maritalStatus === "Married" ? formData.hasChildren === "Yes" : false,
       shoppingPreference: formData.shoppingPreference,
       city: formData.city.trim(),
+      whatsappOptIn: formData.whatsappOptIn,
       children:
         formData.maritalStatus === "Married" && formData.hasChildren === "Yes"
           ? children.map((child) => ({
@@ -256,70 +266,61 @@ export default function MainForm() {
 
   return (
     <div className="mf-page">
+      <div className="mf-bg-shape mf-bg-shape-one" />
+      <div className="mf-bg-shape mf-bg-shape-two" />
+      <div className="mf-bg-shape mf-bg-shape-three" />
+
       <div className="mf-container">
-        <div className="mf-hero">
-          <div className="mf-hero-left">
-            <div className="mf-brand-row">
-              <div className="mf-logo">V</div>
-              <div className="mf-brand-text">
-                <p>Vandhana Shopping Mall</p>
-                <h1>Scratch and Win</h1>
-              </div>
+        <section className="mf-hero">
+          <div className="mf-brand-row">
+            <div className="mf-logo">V</div>
+            <div className="mf-brand-text">
+              <p>Vandhana Shopping Mall</p>
+              <h1>Scratch and Win</h1>
             </div>
+          </div>
 
-            <div className="mf-hero-copy">
+          <div className="mf-reward-card">
+            <div className="mf-reward-content">
               <span className="mf-pill">Exclusive Reward Entry</span>
-              <h2>Shop. Register. Unlock your reward.</h2>
-              <p>
-                Fill in your details and move to the next step to reveal your scratch card reward.
-              </p>
+              <h2>Register now and unlock your scratch reward</h2>
+              <p>Complete your details below and continue to reveal your reward.</p>
             </div>
 
-            <div className="mf-hero-stats">
-              <div className="mf-stat-card">
-                <strong>Step 1</strong>
-                <span>Submit your details</span>
+            <div className="mf-ticket">
+              <div>
+                <span>Reward Pass</span>
+                <h3>Up to 10%</h3>
+                <p>Discount on shopping</p>
               </div>
-              <div className="mf-stat-card">
-                <strong>Step 2</strong>
-                <span>Go to next screen</span>
-              </div>
-              <div className="mf-stat-card mf-stat-highlight">
-                <strong>Reward</strong>
-                <span>Up to 10% Discount</span>
-              </div>
+              <div className="mf-ticket-badge">WIN</div>
             </div>
           </div>
 
-          <div className="mf-hero-right">
-            <div className="mf-preview-card">
-              <div className="mf-preview-top">
-                <div className="mf-preview-dots">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-              </div>
-              <div className="mf-ticket">
-                <div className="mf-ticket-left">
-                  <span>Reward Pass</span>
-                  <h3>Scratch Card Access</h3>
-                  <p>Complete the form to continue</p>
-                </div>
-                <div className="mf-ticket-right">10%</div>
-              </div>
+          <div className="mf-progress-card">
+            <div className={`mf-progress-step ${!isFormSubmitted ? "active" : "done"}`}>
+              <span>1</span>
+              <p>Register</p>
+            </div>
+            <div className="mf-progress-line" />
+            <div className={`mf-progress-step ${isFormSubmitted ? "active" : ""}`}>
+              <span>2</span>
+              <p>Scratch</p>
+            </div>
+            <div className="mf-progress-line" />
+            <div className="mf-progress-step">
+              <span>3</span>
+              <p>Reward</p>
             </div>
           </div>
-        </div>
+        </section>
 
         {!isFormSubmitted ? (
-          <div className="mf-form-card">
+          <section className="mf-form-card">
             <div className="mf-form-head">
-              <div>
-                <span className="mf-section-badge">Step 1</span>
-                <h3>Customer Registration</h3>
-                <p>Please enter the details below carefully</p>
-              </div>
+              <span className="mf-section-badge">Step 1</span>
+              <h3>Customer Registration</h3>
+              <p>Please enter the details carefully to continue.</p>
             </div>
 
             {error ? <div className="mf-alert mf-alert-error">{error}</div> : null}
@@ -328,8 +329,10 @@ export default function MainForm() {
             <form className="mf-form" onSubmit={handleSubmit}>
               <div className="mf-panel">
                 <div className="mf-panel-head">
-                  <h4>Basic Details</h4>
-                  <span>Required information</span>
+                  <div>
+                    <h4>Basic Details</h4>
+                    <span>All fields are required</span>
+                  </div>
                 </div>
 
                 <div className="mf-grid">
@@ -342,6 +345,7 @@ export default function MainForm() {
                       onChange={handleChange}
                       placeholder="Enter full name"
                       disabled={isSubmitting}
+                      autoComplete="name"
                     />
                   </div>
 
@@ -352,8 +356,10 @@ export default function MainForm() {
                       name="mobileNumber"
                       value={formData.mobileNumber}
                       onChange={handleChange}
-                      placeholder="Enter 10 digit mobile number"
+                      placeholder="10 digit mobile number"
                       disabled={isSubmitting}
+                      inputMode="numeric"
+                      autoComplete="tel"
                     />
                   </div>
 
@@ -406,6 +412,7 @@ export default function MainForm() {
                       onChange={handleChange}
                       placeholder="Enter city"
                       disabled={isSubmitting}
+                      autoComplete="address-level2"
                     />
                   </div>
 
@@ -428,10 +435,12 @@ export default function MainForm() {
               </div>
 
               {formData.maritalStatus === "Married" ? (
-                <div className="mf-panel">
+                <div className="mf-panel mf-family-panel">
                   <div className="mf-panel-head">
-                    <h4>Family Details</h4>
-                    <span>Shown for married customers</span>
+                    <div>
+                      <h4>Family Details</h4>
+                      <span>Shown for married customers</span>
+                    </div>
                   </div>
 
                   <div className="mf-grid">
@@ -541,23 +550,34 @@ export default function MainForm() {
                 </div>
               ) : null}
 
+              <label className="mf-consent-card">
+                <input
+                  type="checkbox"
+                  name="whatsappOptIn"
+                  checked={formData.whatsappOptIn}
+                  onChange={handleChange}
+                  disabled={isSubmitting}
+                />
+                <span>
+                  I agree to receive birthday wishes and offers from Vandhana Shopping Mall on WhatsApp.
+                </span>
+              </label>
+
               <div className="mf-submit-row">
                 <button type="submit" className="mf-primary-btn" disabled={isSubmitting}>
                   {isSubmitting ? "Submitting..." : "Submit Form"}
                 </button>
               </div>
             </form>
-          </div>
+          </section>
         ) : (
-          <div className="mf-success-wrap">
+          <section className="mf-success-wrap">
             <div className="mf-success-card">
-              <div className="mf-success-top">
-                <div className="mf-success-icon">✓</div>
-                <span className="mf-section-badge">Step 1 Completed</span>
-              </div>
+              <div className="mf-success-icon">✓</div>
+              <span className="mf-section-badge">Step 1 Completed</span>
 
               <h3>Registration Successful</h3>
-              <p>Your details have been saved successfully. You can now continue to the next step.</p>
+              <p>Your details have been saved successfully. You can now continue to the scratch card.</p>
 
               {customerId ? <div className="mf-customer-id">Customer ID: {customerId}</div> : null}
 
@@ -570,7 +590,7 @@ export default function MainForm() {
                 </button>
               </div>
             </div>
-          </div>
+          </section>
         )}
       </div>
     </div>
