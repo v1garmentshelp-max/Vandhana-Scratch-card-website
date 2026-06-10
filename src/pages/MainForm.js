@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./MainForm.css";
 
 const initialForm = {
@@ -26,37 +26,44 @@ export default function MainForm() {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  const savedData = useMemo(() => {
+  useEffect(() => {
     try {
-      return JSON.parse(localStorage.getItem("vandhana_user_form") || "null");
+      const savedData = JSON.parse(localStorage.getItem("vandhana_user_form") || "null");
+
+      if (savedData?.formData?.mobileNumber) {
+        setFormData({
+          ...initialForm,
+          ...savedData.formData
+        });
+        setChildren(Array.isArray(savedData.children) ? savedData.children : []);
+        setIsFormSubmitted(Boolean(savedData.isFormSubmitted));
+        setCustomerId(savedData.customerId || "");
+      }
     } catch {
-      return null;
+      localStorage.removeItem("vandhana_user_form");
     }
   }, []);
 
-  useEffect(() => {
-    if (savedData?.formData?.mobileNumber) {
-      setFormData({
-        ...initialForm,
-        ...savedData.formData
-      });
-      setChildren(savedData.children || []);
-      setIsFormSubmitted(Boolean(savedData.isFormSubmitted));
-      setCustomerId(savedData.customerId || "");
-    }
-  }, [savedData]);
-
   const handleChange = (e) => {
-    const { name, value, checked } = e.target;
+    const { name, value, checked, type } = e.target;
 
-    if (name === "whatsappOptIn") {
-      setFormData((prev) => ({ ...prev, whatsappOptIn: checked }));
+    setError("");
+    setSuccessMsg("");
+
+    if (type === "checkbox" && name === "whatsappOptIn") {
+      setFormData((prev) => ({
+        ...prev,
+        whatsappOptIn: checked
+      }));
       return;
     }
 
     if (name === "mobileNumber") {
       const cleaned = value.replace(/\D/g, "").slice(0, 10);
-      setFormData((prev) => ({ ...prev, [name]: cleaned }));
+      setFormData((prev) => ({
+        ...prev,
+        mobileNumber: cleaned
+      }));
       return;
     }
 
@@ -91,10 +98,16 @@ export default function MainForm() {
       return;
     }
 
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleChildChange = (index, field, value) => {
+    setError("");
+    setSuccessMsg("");
+
     setChildren((prev) =>
       prev.map((child, i) =>
         i === index
@@ -161,7 +174,7 @@ export default function MainForm() {
       }
 
       if (formData.hasChildren === "Yes") {
-        if (children.length === 0) {
+        if (!Array.isArray(children) || children.length === 0) {
           return "Please add child details";
         }
 
@@ -182,6 +195,11 @@ export default function MainForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (isSubmitting) {
+      return;
+    }
+
     setError("");
     setSuccessMsg("");
 
@@ -189,28 +207,46 @@ export default function MainForm() {
 
     if (validationError) {
       setError(validationError);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
-    const payload = {
+    const normalizedFormData = {
+      ...formData,
       customerName: formData.customerName.trim(),
-      mobileNumber: formData.mobileNumber,
-      gender: formData.gender,
-      dateOfBirth: formData.dateOfBirth,
-      maritalStatus: formData.maritalStatus,
       spouseName: formData.maritalStatus === "Married" ? formData.spouseName.trim() : "",
       spouseDob: formData.maritalStatus === "Married" ? formData.spouseDob : "",
-      hasChildren: formData.maritalStatus === "Married" ? formData.hasChildren === "Yes" : false,
-      shoppingPreference: formData.shoppingPreference,
-      city: formData.city.trim(),
-      whatsappOptIn: formData.whatsappOptIn,
-      children:
-        formData.maritalStatus === "Married" && formData.hasChildren === "Yes"
-          ? children.map((child) => ({
-              childName: child.name.trim(),
-              childDob: child.dob
-            }))
-          : []
+      hasChildren: formData.maritalStatus === "Married" ? formData.hasChildren : "",
+      city: formData.city.trim()
+    };
+
+    const normalizedChildren =
+      formData.maritalStatus === "Married" && formData.hasChildren === "Yes"
+        ? children.map((child) => ({
+            name: child.name.trim(),
+            dob: child.dob
+          }))
+        : [];
+
+    const payload = {
+      customerName: normalizedFormData.customerName,
+      mobileNumber: normalizedFormData.mobileNumber,
+      gender: normalizedFormData.gender,
+      dateOfBirth: normalizedFormData.dateOfBirth,
+      maritalStatus: normalizedFormData.maritalStatus,
+      spouseName: normalizedFormData.spouseName,
+      spouseDob: normalizedFormData.spouseDob,
+      hasChildren:
+        normalizedFormData.maritalStatus === "Married"
+          ? normalizedFormData.hasChildren === "Yes"
+          : false,
+      shoppingPreference: normalizedFormData.shoppingPreference,
+      city: normalizedFormData.city,
+      whatsappOptIn: Boolean(normalizedFormData.whatsappOptIn),
+      children: normalizedChildren.map((child) => ({
+        childName: child.name,
+        childDob: child.dob
+      }))
     };
 
     try {
@@ -224,27 +260,30 @@ export default function MainForm() {
         body: JSON.stringify(payload)
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         setError(data.message || "Failed to submit form");
-        setIsSubmitting(false);
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
 
       const savedPayload = {
-        formData,
-        children,
+        formData: normalizedFormData,
+        children: normalizedChildren,
         customerId: data.customerId || "",
         isFormSubmitted: true
       };
 
       localStorage.setItem("vandhana_user_form", JSON.stringify(savedPayload));
+      setFormData(normalizedFormData);
+      setChildren(normalizedChildren);
       setCustomerId(data.customerId || "");
       setIsFormSubmitted(true);
       setSuccessMsg("Form submitted successfully.");
     } catch {
       setError("Unable to connect to server");
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setIsSubmitting(false);
     }
@@ -326,7 +365,7 @@ export default function MainForm() {
             {error ? <div className="mf-alert mf-alert-error">{error}</div> : null}
             {successMsg ? <div className="mf-alert mf-alert-success">{successMsg}</div> : null}
 
-            <form className="mf-form" onSubmit={handleSubmit}>
+            <form className="mf-form" onSubmit={handleSubmit} noValidate>
               <div className="mf-panel">
                 <div className="mf-panel-head">
                   <div>
@@ -582,10 +621,10 @@ export default function MainForm() {
               {customerId ? <div className="mf-customer-id">Customer ID: {customerId}</div> : null}
 
               <div className="mf-success-actions">
-                <button className="mf-primary-btn" onClick={handleNext}>
+                <button type="button" className="mf-primary-btn" onClick={handleNext}>
                   Next
                 </button>
-                <button className="mf-secondary-btn" onClick={handleReset}>
+                <button type="button" className="mf-secondary-btn" onClick={handleReset}>
                   Fill Again
                 </button>
               </div>
