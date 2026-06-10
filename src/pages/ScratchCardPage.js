@@ -99,7 +99,7 @@ export default function ScratchCardPage() {
             <ScratchCanvas
               width={320}
               height={320}
-              coverImage="/images/qr4.jpg"
+              coverImage="/images/final.png"
               brushSize={26}
               finishPercent={40}
               onComplete={onComplete}
