@@ -28,7 +28,9 @@ export default function MainForm() {
 
   useEffect(() => {
     try {
-      const savedData = JSON.parse(localStorage.getItem("vandhana_user_form") || "null");
+      const savedData = JSON.parse(
+        localStorage.getItem("vandhana_user_form") || "null"
+      );
 
       if (savedData?.formData?.mobileNumber) {
         setFormData({
@@ -60,6 +62,7 @@ export default function MainForm() {
 
     if (name === "mobileNumber") {
       const cleaned = value.replace(/\D/g, "").slice(0, 10);
+
       setFormData((prev) => ({
         ...prev,
         mobileNumber: cleaned
@@ -109,8 +112,8 @@ export default function MainForm() {
     setSuccessMsg("");
 
     setChildren((prev) =>
-      prev.map((child, i) =>
-        i === index
+      prev.map((child, childIndex) =>
+        childIndex === index
           ? {
               ...child,
               [field]: value
@@ -125,7 +128,7 @@ export default function MainForm() {
   };
 
   const removeChild = (index) => {
-    setChildren((prev) => prev.filter((_, i) => i !== index));
+    setChildren((prev) => prev.filter((_, childIndex) => childIndex !== index));
   };
 
   const validateForm = () => {
@@ -178,19 +181,71 @@ export default function MainForm() {
           return "Please add child details";
         }
 
-        for (let i = 0; i < children.length; i += 1) {
-          if (!nameRegex.test((children[i].name || "").trim())) {
-            return `Please enter a valid name for child ${i + 1}`;
+        for (let index = 0; index < children.length; index += 1) {
+          if (!nameRegex.test((children[index].name || "").trim())) {
+            return `Please enter a valid name for child ${index + 1}`;
           }
 
-          if (!children[i].dob) {
-            return `Please select date of birth for child ${i + 1}`;
+          if (!children[index].dob) {
+            return `Please select date of birth for child ${index + 1}`;
           }
         }
       }
     }
 
     return "";
+  };
+
+  const saveSuccessfulSubmission = ({
+    normalizedFormData,
+    normalizedChildren,
+    customerId: savedCustomerId,
+    spinToken
+  }) => {
+    const savedPayload = {
+      formData: normalizedFormData,
+      children: normalizedChildren,
+      customerId: savedCustomerId || "",
+      spinToken: spinToken || "",
+      isFormSubmitted: true
+    };
+
+    localStorage.setItem("vandhana_user_form", JSON.stringify(savedPayload));
+    localStorage.removeItem("vandhana_reset");
+    setFormData(normalizedFormData);
+    setChildren(normalizedChildren);
+    setCustomerId(savedCustomerId || "");
+    setIsFormSubmitted(true);
+    setSuccessMsg("Form submitted successfully.");
+  };
+
+  const createExistingCustomerAccess = async ({
+    normalizedFormData,
+    normalizedChildren
+  }) => {
+    const response = await fetch(`${API_BASE_URL}/api/customers/spin-access`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        mobileNumber: normalizedFormData.mobileNumber,
+        dateOfBirth: normalizedFormData.dateOfBirth
+      })
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || "Unable to continue with this customer");
+    }
+
+    saveSuccessfulSubmission({
+      normalizedFormData,
+      normalizedChildren,
+      customerId: data.customerId,
+      spinToken: data.spinToken
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -214,14 +269,20 @@ export default function MainForm() {
     const normalizedFormData = {
       ...formData,
       customerName: formData.customerName.trim(),
-      spouseName: formData.maritalStatus === "Married" ? formData.spouseName.trim() : "",
-      spouseDob: formData.maritalStatus === "Married" ? formData.spouseDob : "",
-      hasChildren: formData.maritalStatus === "Married" ? formData.hasChildren : "",
+      spouseName:
+        formData.maritalStatus === "Married"
+          ? formData.spouseName.trim()
+          : "",
+      spouseDob:
+        formData.maritalStatus === "Married" ? formData.spouseDob : "",
+      hasChildren:
+        formData.maritalStatus === "Married" ? formData.hasChildren : "",
       city: formData.city.trim()
     };
 
     const normalizedChildren =
-      formData.maritalStatus === "Married" && formData.hasChildren === "Yes"
+      formData.maritalStatus === "Married" &&
+      formData.hasChildren === "Yes"
         ? children.map((child) => ({
             name: child.name.trim(),
             dob: child.dob
@@ -262,27 +323,33 @@ export default function MainForm() {
 
       const data = await response.json().catch(() => ({}));
 
+      if (response.status === 409) {
+        await createExistingCustomerAccess({
+          normalizedFormData,
+          normalizedChildren
+        });
+        return;
+      }
+
       if (!response.ok) {
         setError(data.message || "Failed to submit form");
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
 
-      const savedPayload = {
-        formData: normalizedFormData,
-        children: normalizedChildren,
-        customerId: data.customerId || "",
-        isFormSubmitted: true
-      };
+      if (!data.spinToken) {
+        setError("Spin access was not created. Please try again.");
+        return;
+      }
 
-      localStorage.setItem("vandhana_user_form", JSON.stringify(savedPayload));
-      setFormData(normalizedFormData);
-      setChildren(normalizedChildren);
-      setCustomerId(data.customerId || "");
-      setIsFormSubmitted(true);
-      setSuccessMsg("Form submitted successfully.");
-    } catch {
-      setError("Unable to connect to server");
+      saveSuccessfulSubmission({
+        normalizedFormData,
+        normalizedChildren,
+        customerId: data.customerId,
+        spinToken: data.spinToken
+      });
+    } catch (requestError) {
+      setError(requestError.message || "Unable to connect to server");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setIsSubmitting(false);
@@ -295,6 +362,7 @@ export default function MainForm() {
 
   const handleReset = () => {
     localStorage.removeItem("vandhana_user_form");
+    localStorage.removeItem("vandhana_reset");
     setFormData(initialForm);
     setChildren([]);
     setIsFormSubmitted(false);
@@ -315,38 +383,53 @@ export default function MainForm() {
             <div className="mf-logo">V</div>
             <div className="mf-brand-text">
               <p>Vandhana Shopping Mall</p>
-              <h1>Scratch and Win</h1>
+              <h1>Spin and Win</h1>
             </div>
           </div>
 
           <div className="mf-reward-card">
             <div className="mf-reward-content">
               <span className="mf-pill">Exclusive Reward Entry</span>
-              <h2>Register now and unlock your scratch reward</h2>
-              <p>Complete your details below and continue to reveal your reward.</p>
+              <h2>Register now and unlock your spin reward</h2>
+              <p>
+                Complete your details below and spin the wheel to reveal your
+                reward.
+              </p>
             </div>
 
             <div className="mf-ticket">
               <div>
                 <span>Reward Pass</span>
-                <h3>Up to 10%</h3>
-                <p>Discount on shopping</p>
+                <h3>Spin & Win</h3>
+                <p>Discounts and exciting gifts</p>
               </div>
               <div className="mf-ticket-badge">WIN</div>
             </div>
           </div>
 
           <div className="mf-progress-card">
-            <div className={`mf-progress-step ${!isFormSubmitted ? "active" : "done"}`}>
+            <div
+              className={`mf-progress-step ${
+                !isFormSubmitted ? "active" : "done"
+              }`}
+            >
               <span>1</span>
               <p>Register</p>
             </div>
+
             <div className="mf-progress-line" />
-            <div className={`mf-progress-step ${isFormSubmitted ? "active" : ""}`}>
+
+            <div
+              className={`mf-progress-step ${
+                isFormSubmitted ? "active" : ""
+              }`}
+            >
               <span>2</span>
-              <p>Scratch</p>
+              <p>Spin</p>
             </div>
+
             <div className="mf-progress-line" />
+
             <div className="mf-progress-step">
               <span>3</span>
               <p>Reward</p>
@@ -362,8 +445,13 @@ export default function MainForm() {
               <p>Please enter the details carefully to continue.</p>
             </div>
 
-            {error ? <div className="mf-alert mf-alert-error">{error}</div> : null}
-            {successMsg ? <div className="mf-alert mf-alert-success">{successMsg}</div> : null}
+            {error ? (
+              <div className="mf-alert mf-alert-error">{error}</div>
+            ) : null}
+
+            {successMsg ? (
+              <div className="mf-alert mf-alert-success">{successMsg}</div>
+            ) : null}
 
             <form className="mf-form" onSubmit={handleSubmit} noValidate>
               <div className="mf-panel">
@@ -528,6 +616,7 @@ export default function MainForm() {
                           <h5>Children Details</h5>
                           <p>Add each child below</p>
                         </div>
+
                         <button
                           type="button"
                           className="mf-outline-btn"
@@ -543,6 +632,7 @@ export default function MainForm() {
                           <div className="mf-child-card" key={index}>
                             <div className="mf-child-card-top">
                               <span>Child {index + 1}</span>
+
                               {children.length > 1 ? (
                                 <button
                                   type="button"
@@ -562,7 +652,11 @@ export default function MainForm() {
                                   type="text"
                                   value={child.name}
                                   onChange={(e) =>
-                                    handleChildChange(index, "name", e.target.value)
+                                    handleChildChange(
+                                      index,
+                                      "name",
+                                      e.target.value
+                                    )
                                   }
                                   placeholder="Enter child name"
                                   disabled={isSubmitting}
@@ -575,7 +669,11 @@ export default function MainForm() {
                                   type="date"
                                   value={child.dob}
                                   onChange={(e) =>
-                                    handleChildChange(index, "dob", e.target.value)
+                                    handleChildChange(
+                                      index,
+                                      "dob",
+                                      e.target.value
+                                    )
                                   }
                                   disabled={isSubmitting}
                                 />
@@ -597,13 +695,19 @@ export default function MainForm() {
                   onChange={handleChange}
                   disabled={isSubmitting}
                 />
+
                 <span>
-                  I agree to receive birthday wishes and offers from Vandhana Shopping Mall on WhatsApp.
+                  I agree to receive birthday wishes and offers from Vandhana
+                  Shopping Mall on WhatsApp.
                 </span>
               </label>
 
               <div className="mf-submit-row">
-                <button type="submit" className="mf-primary-btn" disabled={isSubmitting}>
+                <button
+                  type="submit"
+                  className="mf-primary-btn"
+                  disabled={isSubmitting}
+                >
                   {isSubmitting ? "Submitting..." : "Submit Form"}
                 </button>
               </div>
@@ -616,15 +720,32 @@ export default function MainForm() {
               <span className="mf-section-badge">Step 1 Completed</span>
 
               <h3>Registration Successful</h3>
-              <p>Your details have been saved successfully. You can now continue to the scratch card.</p>
 
-              {customerId ? <div className="mf-customer-id">Customer ID: {customerId}</div> : null}
+              <p>
+                Your details have been saved successfully. You can now continue
+                to the spin wheel.
+              </p>
+
+              {customerId ? (
+                <div className="mf-customer-id">
+                  Customer ID: {customerId}
+                </div>
+              ) : null}
 
               <div className="mf-success-actions">
-                <button type="button" className="mf-primary-btn" onClick={handleNext}>
-                  Next
+                <button
+                  type="button"
+                  className="mf-primary-btn"
+                  onClick={handleNext}
+                >
+                  Spin the Wheel
                 </button>
-                <button type="button" className="mf-secondary-btn" onClick={handleReset}>
+
+                <button
+                  type="button"
+                  className="mf-secondary-btn"
+                  onClick={handleReset}
+                >
                   Fill Again
                 </button>
               </div>

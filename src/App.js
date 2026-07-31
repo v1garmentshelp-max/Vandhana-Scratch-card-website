@@ -11,8 +11,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<MainForm />} />
-          <Route path="/scratch" element={<ScratchCardPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/scratch" element={<ScratchCardPage />} />
         </Routes>
       </BrowserRouter>
     </PopupProvider>

@@ -1,12 +1,12 @@
-import React from 'react';
-import './Popup.css';
+import React from "react";
+import "./Popup.css";
 
 export default function Popup() {
   return (
     <div className="popup-overlay">
       <div className="popup-ambient">
-        {Array.from({ length: 36 }).map((_, i) => (
-          <i key={i} style={{ '--i': i + 1 }} />
+        {Array.from({ length: 36 }).map((_, index) => (
+          <i key={index} style={{ "--i": index + 1 }} />
         ))}
       </div>
 
@@ -21,15 +21,20 @@ export default function Popup() {
 
         <p className="popup-label">Special Reward</p>
         <h2 className="popup-title">Vandhana Shopping Mall</h2>
+
         <p className="popup-text">
-          Scratch and unlock a special shopping reward on your purchase. Enjoy exciting offers and get up to 10% discount today.
+          Register, spin the wheel and unlock a shopping discount or exciting
+          gift from Vandhana Shopping Mall.
         </p>
+
         <p className="popup-subtext">
-          Your surprise offer is ready. Start scratching now.
+          Your surprise reward is ready. Complete your details to continue.
         </p>
 
         <div className="popup-actions">
-          <button className="popup-btn">Scratch Now</button>
+          <button type="button" className="popup-btn">
+            Spin & Win
+          </button>
         </div>
 
         <div className="popup-shine" />

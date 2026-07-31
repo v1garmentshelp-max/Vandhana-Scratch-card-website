@@ -1,76 +1,328 @@
 import React, { useEffect, useState } from "react";
-import ScratchCanvas from "./ScratchCanvas";
 import { useNavigate } from "react-router-dom";
-import { usePopup } from "../PopupProvider";
+import SpinWheel from "./SpinWheel";
 import "./ScratchCardPage.css";
 
-const rewards = [
-  {
-    id: 1,
-    type: "image",
-    title: "Premium Pen Gift",
-    subtitle: "A stylish complimentary gift for you",
-    description: "You have unlocked a premium pen from Vandhana Shopping Mall. Please collect it at the billing counter with your reward confirmation.",
-    image: "/images/pen.jpg",
-    toast: "You won a premium pen gift"
-  },
-  {
-    id: 2,
-    type: "image",
-    title: "Key Chain Gift",
-    subtitle: "A special surprise for your visit",
-    description: "You have unlocked a beautiful key chain gift. Show this reward at the counter and claim your gift today.",
-    image: "/images/key-chain.jpg",
-    toast: "You won a key chain gift"
-  },
-  {
-    id: 3,
-    type: "text",
-    title: "10% Discount Reward",
-    subtitle: "Claim on your next purchase",
-    description: "You won 10% discount on your next purchase at Vandhana Shopping Mall. Keep this reward safe and redeem it during your next shopping visit for extra savings.",
-    badge: "Next Purchase Offer",
-    toast: "You won 10% discount for your next purchase"
-  },
-  {
-    id: 4,
-    type: "text",
-    title: "5% Instant Discount",
-    subtitle: "Valid on this purchase",
-    description: "You got 5% instant discount on this purchase. Please show this reward to the billing team and enjoy your savings right away.",
-    badge: "Instant Savings",
-    toast: "You won 5% instant discount"
+const API_BASE_URL = "https://vandhana-scratch-card-backend.vercel.app";
+
+const readSavedCustomer = () => {
+  try {
+    return JSON.parse(localStorage.getItem("vandhana_user_form") || "null");
+  } catch {
+    return null;
   }
-];
+};
+
+const updateSavedCustomer = (updates) => {
+  const savedData = readSavedCustomer();
+
+  if (!savedData) {
+    return;
+  }
+
+  localStorage.setItem(
+    "vandhana_user_form",
+    JSON.stringify({
+      ...savedData,
+      ...updates
+    })
+  );
+};
+
+const requestSpinAccess = async (savedData) => {
+  const mobileNumber = savedData?.formData?.mobileNumber;
+  const dateOfBirth = savedData?.formData?.dateOfBirth;
+
+  if (!mobileNumber || !dateOfBirth) {
+    throw new Error("Customer spin access is missing");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/customers/spin-access`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      mobileNumber,
+      dateOfBirth
+    })
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || "Unable to create spin access");
+  }
+
+  if (!data.spinToken) {
+    throw new Error("Spin token was not returned by the server");
+  }
+
+  updateSavedCustomer({
+    customerId: data.customerId || savedData.customerId || "",
+    spinToken: data.spinToken
+  });
+
+  return data.spinToken;
+};
+
+const getRewardDescription = (reward) => {
+  if (!reward) {
+    return "";
+  }
+
+  if (reward.rewardType === "discount") {
+    return `You have won ${reward.rewardLabel}. Show this result at the billing counter to claim your discount.`;
+  }
+
+  if (reward.rewardType === "prize") {
+    return `You have won ${reward.rewardLabel}. Show this result at the billing counter to collect your gift.`;
+  }
+
+  return "Thank you for participating. Better luck next time.";
+};
 
 export default function ScratchCardPage() {
-  const [reward, setReward] = useState(null);
-  const [revealed, setRevealed] = useState(false);
-  const [showPrizePopup, setShowPrizePopup] = useState(false);
-  const [claiming, setClaiming] = useState(false);
-  const { triggerPopup } = usePopup();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const randomReward = rewards[Math.floor(Math.random() * rewards.length)];
-    setReward(randomReward);
-  }, []);
+  const [campaign, setCampaign] = useState(null);
+  const [segments, setSegments] = useState([]);
+  const [spinToken, setSpinToken] = useState("");
+  const [reward, setReward] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [wheelSpinning, setWheelSpinning] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  const [error, setError] = useState("");
+  const [showToast, setShowToast] = useState(false);
 
-  const onComplete = () => {
-    setRevealed(true);
-    setShowPrizePopup(true);
-    setTimeout(() => setShowPrizePopup(false), 2800);
+  useEffect(() => {
+    let active = true;
+
+    const loadPage = async () => {
+      try {
+        const savedData = readSavedCustomer();
+
+        if (!savedData?.formData?.mobileNumber) {
+          navigate("/", { replace: true });
+          return;
+        }
+
+        let currentToken = savedData.spinToken || "";
+
+        if (!currentToken) {
+          currentToken = await requestSpinAccess(savedData);
+        }
+
+        const wheelResponse = await fetch(`${API_BASE_URL}/api/wheel`);
+        const wheelData = await wheelResponse.json().catch(() => ({}));
+
+        if (!wheelResponse.ok) {
+          throw new Error(
+            wheelData.message || "Unable to load wheel configuration"
+          );
+        }
+
+        let resultResponse = await fetch(`${API_BASE_URL}/api/spin-result`, {
+          headers: {
+            Authorization: `Bearer ${currentToken}`
+          }
+        });
+
+        if (resultResponse.status === 401) {
+          currentToken = await requestSpinAccess(savedData);
+
+          resultResponse = await fetch(`${API_BASE_URL}/api/spin-result`, {
+            headers: {
+              Authorization: `Bearer ${currentToken}`
+            }
+          });
+        }
+
+        const resultData = await resultResponse.json().catch(() => ({}));
+
+        if (!resultResponse.ok) {
+          throw new Error(resultData.message || "Unable to load spin result");
+        }
+
+        if (!active) {
+          return;
+        }
+
+        setCampaign(wheelData.campaign || null);
+        setSegments(
+          Array.isArray(wheelData.segments) ? wheelData.segments : []
+        );
+        setSpinToken(currentToken);
+        setReward(resultData.hasSpun ? resultData.result : null);
+      } catch (loadError) {
+        if (active) {
+          setError(loadError.message || "Unable to load the spin wheel");
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadPage();
+
+    return () => {
+      active = false;
+    };
+  }, [navigate]);
+
+  const getCurrentSpinToken = async () => {
+    if (spinToken) {
+      return spinToken;
+    }
+
+    const savedData = readSavedCustomer();
+
+    if (!savedData) {
+      throw new Error("Customer registration data is missing");
+    }
+
+    const newToken = await requestSpinAccess(savedData);
+
+    setSpinToken(newToken);
+
+    return newToken;
+  };
+
+  const handleSpinRequest = async () => {
+    try {
+      setError("");
+
+      let currentToken = await getCurrentSpinToken();
+
+      let response = await fetch(`${API_BASE_URL}/api/spin`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${currentToken}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (response.status === 401) {
+        const savedData = readSavedCustomer();
+
+        currentToken = await requestSpinAccess(savedData);
+        setSpinToken(currentToken);
+
+        response = await fetch(`${API_BASE_URL}/api/spin`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+            "Content-Type": "application/json"
+          }
+        });
+      }
+
+      const data = await response.json().catch(() => ({}));
+
+      if (response.status === 409 && data.result) {
+        return data.result;
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to complete the spin");
+      }
+
+      if (!data.result) {
+        throw new Error("The server did not return a reward");
+      }
+
+      return data.result;
+    } catch (spinError) {
+      setError(spinError.message || "Unable to spin the wheel");
+      throw spinError;
+    }
+  };
+
+  const handleSpinComplete = (completedReward) => {
+    setReward(completedReward);
+    setShowToast(true);
+
+    window.setTimeout(() => {
+      setShowToast(false);
+    }, 3200);
   };
 
   const handleClaim = async () => {
-    setClaiming(true);
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    await triggerPopup();
+    if (!reward || reward.rewardType === "no_win" || claiming) {
+      return;
+    }
+
+    try {
+      setClaiming(true);
+      setError("");
+
+      let currentToken = await getCurrentSpinToken();
+
+      let response = await fetch(`${API_BASE_URL}/api/spin/claim`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${currentToken}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (response.status === 401) {
+        const savedData = readSavedCustomer();
+
+        currentToken = await requestSpinAccess(savedData);
+        setSpinToken(currentToken);
+
+        response = await fetch(`${API_BASE_URL}/api/spin/claim`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+            "Content-Type": "application/json"
+          }
+        });
+      }
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to claim reward");
+      }
+
+      setReward(data.result);
+      setShowToast(true);
+
+      window.setTimeout(() => {
+        setShowToast(false);
+      }, 2800);
+    } catch (claimError) {
+      setError(claimError.message || "Unable to claim reward");
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  const handleFinish = () => {
     localStorage.removeItem("vandhana_user_form");
     localStorage.setItem("vandhana_reset", "1");
-    navigate("/");
-    setClaiming(false);
+    navigate("/", { replace: true });
   };
+
+  const claimCompleted =
+    reward?.claimStatus === "claimed" ||
+    reward?.claimStatus === "redeemed";
+
+  if (loading) {
+    return (
+      <div className="sc-wrap">
+        <div className="sc-loading-card">
+          <div className="sc-loader" />
+          <h2>Preparing your spin wheel</h2>
+          <p>Please wait while we load your rewards.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="sc-wrap">
@@ -82,85 +334,143 @@ export default function ScratchCardPage() {
           <div className="sc-logo-wrap">
             <div className="sc-logo-badge">V</div>
           </div>
+
           <div className="sc-title-wrap">
             <h1 className="sc-title">Vandhana Shopping Mall</h1>
-            <p className="sc-subtitle">Scratch to reveal your surprise reward</p>
+            <p className="sc-subtitle">
+              Spin the wheel and reveal your reward
+            </p>
           </div>
         </div>
 
         <div className="sc-top-note">
-          <span className="sc-note-chip">Lucky Reward Card</span>
-          <p>Scratch the card below and reveal one surprise gift or discount offer.</p>
+          <span className="sc-note-chip">
+            {campaign?.wheelTitle || "Spin & Win"}
+          </span>
+
+          <p>
+            Press the centre button once and wait for the wheel to stop on your
+            reward.
+          </p>
         </div>
 
-        <div className={`sc-card ${revealed ? "done" : ""}`}>
-          <div className="sc-card-frame" />
-          <div className="sc-card-inner">
-            <ScratchCanvas
-              width={320}
-              height={320}
-              coverImage="/images/final.png"
-              brushSize={26}
-              finishPercent={40}
-              onComplete={onComplete}
-            >
-              <div className="sc-reveal-layer">
-                {reward ? (
-                  <div className="sc-reward">
-                    {reward.type === "image" ? (
-                      <>
-                        <div className="sc-reward-badge">Gift Unlocked</div>
-                        <div className="sc-reward-image-wrap">
-                          <img src={reward.image} alt={reward.title} className="sc-reward-image" />
-                        </div>
-                        <div className="sc-reward-title">{reward.title}</div>
-                        <div className="sc-reward-subtitle">{reward.subtitle}</div>
-                        <div className="sc-reward-text">{reward.description}</div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="sc-reward-badge">{reward.badge}</div>
-                        <div className="sc-reward-value">{reward.title}</div>
-                        <div className="sc-reward-subtitle">{reward.subtitle}</div>
-                        <div className="sc-reward-text">{reward.description}</div>
-                      </>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            </ScratchCanvas>
+        {error ? <div className="sc-error">{error}</div> : null}
 
-            {!revealed ? (
-              <div className="sc-hint">
-                <div className="sc-hint-title">Scratch here</div>
-                <div className="sc-hint-text">Your gift or discount is waiting inside</div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        {showPrizePopup && reward ? (
-          <div className="sc-toast">🎉 {reward.toast}</div>
-        ) : null}
-
-        {revealed ? (
-          <div className="sc-actions">
-            <button
-              className={`sc-cta ${claiming ? "loading" : ""}`}
-              onClick={handleClaim}
-              disabled={claiming}
-            >
-              {claiming ? "Submitting..." : "Claim Reward"}
-            </button>
-            <p className="sc-note">
-              Please show this reward at the counter to redeem your gift or discount.
-            </p>
+        {segments.length > 0 ? (
+          <div className="sc-wheel-card">
+            <SpinWheel
+              segments={segments}
+              landedRewardCode={reward?.rewardCode}
+              canSpin={!reward && !wheelSpinning}
+              onSpinRequest={handleSpinRequest}
+              onSpinComplete={handleSpinComplete}
+              onSpinStateChange={setWheelSpinning}
+            />
           </div>
         ) : (
-          <div className="sc-footer">
-            <p className="sc-footer-text">Powered by Vandhana Shopping Mall Rewards</p>
+          <div className="sc-empty-state">
+            No active rewards are available right now.
           </div>
         )}
+
+        {showToast && reward ? (
+          <div
+            className={`sc-toast ${
+              reward.rewardType === "no_win" ? "sc-toast-neutral" : ""
+            }`}
+          >
+            {reward.rewardType === "no_win"
+              ? reward.rewardLabel
+              : `🎉 ${reward.rewardLabel}`}
+          </div>
+        ) : null}
+
+        {reward && !wheelSpinning ? (
+          <div className={`sc-result-card sc-result-${reward.rewardType}`}>
+            <span className="sc-result-badge">
+              {reward.rewardType === "discount"
+                ? "Discount Unlocked"
+                : reward.rewardType === "prize"
+                  ? "Gift Unlocked"
+                  : "Spin Completed"}
+            </span>
+
+            {reward.rewardType === "prize" && reward.imageUrl ? (
+              <div className="sc-result-image-wrap">
+                <img
+                  src={reward.imageUrl}
+                  alt={reward.rewardLabel}
+                  className="sc-result-image"
+                />
+              </div>
+            ) : null}
+
+            {reward.rewardType === "discount" ? (
+              <div className="sc-result-value">
+                {reward.discountPercent}% OFF
+              </div>
+            ) : null}
+
+            <h2 className="sc-result-title">{reward.rewardLabel}</h2>
+
+            <p className="sc-result-description">
+              {getRewardDescription(reward)}
+            </p>
+
+            <div className="sc-result-meta">
+              <span>Spin #{reward.spinNumber}</span>
+              <span>
+                {reward.claimStatus === "not_applicable"
+                  ? "Completed"
+                  : reward.claimStatus}
+              </span>
+            </div>
+
+            <div className="sc-actions">
+              {reward.rewardType !== "no_win" && !claimCompleted ? (
+                <button
+                  type="button"
+                  className="sc-cta"
+                  onClick={handleClaim}
+                  disabled={claiming}
+                >
+                  {claiming ? "Claiming..." : "Claim Reward"}
+                </button>
+              ) : null}
+
+              {claimCompleted ? (
+                <div className="sc-claimed-message">
+                  Reward claim recorded successfully
+                </div>
+              ) : null}
+
+              <button
+                type="button"
+                className="sc-secondary-cta"
+                onClick={handleFinish}
+                disabled={claiming}
+              >
+                {reward.rewardType === "no_win"
+                  ? "Finish"
+                  : claimCompleted
+                    ? "New Customer Entry"
+                    : "Finish Later"}
+              </button>
+
+              <p className="sc-note">
+                Show this reward result at the billing counter.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {!reward ? (
+          <div className="sc-footer">
+            <p className="sc-footer-text">
+              Powered by Vandhana Shopping Mall Rewards
+            </p>
+          </div>
+        ) : null}
       </div>
     </div>
   );
