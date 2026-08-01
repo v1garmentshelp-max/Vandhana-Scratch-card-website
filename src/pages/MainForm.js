@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./MainForm.css";
 
 const initialForm = {
@@ -15,7 +15,8 @@ const initialForm = {
   whatsappOptIn: false
 };
 
-const API_BASE_URL = "https://vandhana-scratch-card-backend.vercel.app";
+const API_BASE_URL =
+  "https://vandhana-scratch-card-backend.vercel.app";
 
 export default function MainForm() {
   const [formData, setFormData] = useState(initialForm);
@@ -25,6 +26,18 @@ export default function MainForm() {
   const [customerId, setCustomerId] = useState("");
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+
+  const spouseRelation = useMemo(() => {
+    if (formData.gender === "Male") {
+      return "Wife";
+    }
+
+    if (formData.gender === "Female") {
+      return "Husband";
+    }
+
+    return "Spouse";
+  }, [formData.gender]);
 
   useEffect(() => {
     try {
@@ -37,8 +50,17 @@ export default function MainForm() {
           ...initialForm,
           ...savedData.formData
         });
-        setChildren(Array.isArray(savedData.children) ? savedData.children : []);
-        setIsFormSubmitted(Boolean(savedData.isFormSubmitted));
+
+        setChildren(
+          Array.isArray(savedData.children)
+            ? savedData.children
+            : []
+        );
+
+        setIsFormSubmitted(
+          Boolean(savedData.isFormSubmitted)
+        );
+
         setCustomerId(savedData.customerId || "");
       }
     } catch {
@@ -46,27 +68,56 @@ export default function MainForm() {
     }
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value, checked, type } = e.target;
+  const handleChange = (event) => {
+    const {
+      name,
+      value,
+      checked,
+      type
+    } = event.target;
 
     setError("");
     setSuccessMsg("");
 
-    if (type === "checkbox" && name === "whatsappOptIn") {
-      setFormData((prev) => ({
-        ...prev,
+    if (
+      type === "checkbox" &&
+      name === "whatsappOptIn"
+    ) {
+      setFormData((previous) => ({
+        ...previous,
         whatsappOptIn: checked
       }));
+
       return;
     }
 
     if (name === "mobileNumber") {
-      const cleaned = value.replace(/\D/g, "").slice(0, 10);
+      const cleaned = value
+        .replace(/\D/g, "")
+        .slice(0, 10);
 
-      setFormData((prev) => ({
-        ...prev,
+      setFormData((previous) => ({
+        ...previous,
         mobileNumber: cleaned
       }));
+
+      return;
+    }
+
+    if (name === "gender") {
+      setFormData((previous) => ({
+        ...previous,
+        gender: value,
+        spouseName:
+          previous.gender !== value
+            ? ""
+            : previous.spouseName,
+        spouseDob:
+          previous.gender !== value
+            ? ""
+            : previous.spouseDob
+      }));
+
       return;
     }
 
@@ -75,13 +126,23 @@ export default function MainForm() {
         setChildren([]);
       }
 
-      setFormData((prev) => ({
-        ...prev,
+      setFormData((previous) => ({
+        ...previous,
         maritalStatus: value,
-        spouseName: value === "Married" ? prev.spouseName : "",
-        spouseDob: value === "Married" ? prev.spouseDob : "",
-        hasChildren: value === "Married" ? prev.hasChildren : ""
+        spouseName:
+          value === "Married"
+            ? previous.spouseName
+            : "",
+        spouseDob:
+          value === "Married"
+            ? previous.spouseDob
+            : "",
+        hasChildren:
+          value === "Married"
+            ? previous.hasChildren
+            : ""
       }));
+
       return;
     }
 
@@ -90,29 +151,42 @@ export default function MainForm() {
         setChildren([]);
       }
 
-      if (value === "Yes" && children.length === 0) {
-        setChildren([{ name: "", dob: "" }]);
+      if (
+        value === "Yes" &&
+        children.length === 0
+      ) {
+        setChildren([
+          {
+            name: "",
+            dob: ""
+          }
+        ]);
       }
 
-      setFormData((prev) => ({
-        ...prev,
+      setFormData((previous) => ({
+        ...previous,
         hasChildren: value
       }));
+
       return;
     }
 
-    setFormData((prev) => ({
-      ...prev,
+    setFormData((previous) => ({
+      ...previous,
       [name]: value
     }));
   };
 
-  const handleChildChange = (index, field, value) => {
+  const handleChildChange = (
+    index,
+    field,
+    value
+  ) => {
     setError("");
     setSuccessMsg("");
 
-    setChildren((prev) =>
-      prev.map((child, childIndex) =>
+    setChildren((previous) =>
+      previous.map((child, childIndex) =>
         childIndex === index
           ? {
               ...child,
@@ -124,22 +198,42 @@ export default function MainForm() {
   };
 
   const addChild = () => {
-    setChildren((prev) => [...prev, { name: "", dob: "" }]);
+    setChildren((previous) => [
+      ...previous,
+      {
+        name: "",
+        dob: ""
+      }
+    ]);
   };
 
   const removeChild = (index) => {
-    setChildren((prev) => prev.filter((_, childIndex) => childIndex !== index));
+    setChildren((previous) =>
+      previous.filter(
+        (_, childIndex) => childIndex !== index
+      )
+    );
   };
 
   const validateForm = () => {
     const nameRegex = /^[A-Za-z ]{3,}$/;
     const mobileRegex = /^[6789]\d{9}$/;
+    const spouseNameLabel =
+      spouseRelation.toLowerCase();
 
-    if (!nameRegex.test(formData.customerName.trim())) {
+    if (
+      !nameRegex.test(
+        formData.customerName.trim()
+      )
+    ) {
       return "Please enter a valid customer name";
     }
 
-    if (!mobileRegex.test(formData.mobileNumber)) {
+    if (
+      !mobileRegex.test(
+        formData.mobileNumber
+      )
+    ) {
       return "Please enter a valid 10 digit mobile number starting with 6, 7, 8 or 9";
     }
 
@@ -163,31 +257,54 @@ export default function MainForm() {
       return "Please enter city";
     }
 
-    if (formData.maritalStatus === "Married") {
-      if (!nameRegex.test((formData.spouseName || "").trim())) {
-        return "Please enter a valid wife name";
+    if (
+      formData.maritalStatus === "Married"
+    ) {
+      if (
+        !nameRegex.test(
+          (formData.spouseName || "").trim()
+        )
+      ) {
+        return `Please enter a valid ${spouseNameLabel} name`;
       }
 
       if (!formData.spouseDob) {
-        return "Please select wife date of birth";
+        return `Please select ${spouseNameLabel} date of birth`;
       }
 
       if (!formData.hasChildren) {
         return "Please select children status";
       }
 
-      if (formData.hasChildren === "Yes") {
-        if (!Array.isArray(children) || children.length === 0) {
+      if (
+        formData.hasChildren === "Yes"
+      ) {
+        if (
+          !Array.isArray(children) ||
+          children.length === 0
+        ) {
           return "Please add child details";
         }
 
-        for (let index = 0; index < children.length; index += 1) {
-          if (!nameRegex.test((children[index].name || "").trim())) {
-            return `Please enter a valid name for child ${index + 1}`;
+        for (
+          let index = 0;
+          index < children.length;
+          index += 1
+        ) {
+          if (
+            !nameRegex.test(
+              (children[index].name || "").trim()
+            )
+          ) {
+            return `Please enter a valid name for child ${
+              index + 1
+            }`;
           }
 
           if (!children[index].dob) {
-            return `Please select date of birth for child ${index + 1}`;
+            return `Please select date of birth for child ${
+              index + 1
+            }`;
           }
         }
       }
@@ -210,34 +327,53 @@ export default function MainForm() {
       isFormSubmitted: true
     };
 
-    localStorage.setItem("vandhana_user_form", JSON.stringify(savedPayload));
-    localStorage.removeItem("vandhana_reset");
+    localStorage.setItem(
+      "vandhana_user_form",
+      JSON.stringify(savedPayload)
+    );
+
+    localStorage.removeItem(
+      "vandhana_reset"
+    );
+
     setFormData(normalizedFormData);
     setChildren(normalizedChildren);
     setCustomerId(savedCustomerId || "");
     setIsFormSubmitted(true);
-    setSuccessMsg("Form submitted successfully.");
+    setSuccessMsg(
+      "Form submitted successfully."
+    );
   };
 
   const createExistingCustomerAccess = async ({
     normalizedFormData,
     normalizedChildren
   }) => {
-    const response = await fetch(`${API_BASE_URL}/api/customers/spin-access`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        mobileNumber: normalizedFormData.mobileNumber,
-        dateOfBirth: normalizedFormData.dateOfBirth
-      })
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/api/customers/spin-access`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          mobileNumber:
+            normalizedFormData.mobileNumber,
+          dateOfBirth:
+            normalizedFormData.dateOfBirth
+        })
+      }
+    );
 
-    const data = await response.json().catch(() => ({}));
+    const data = await response
+      .json()
+      .catch(() => ({}));
 
     if (!response.ok) {
-      throw new Error(data.message || "Unable to continue with this customer");
+      throw new Error(
+        data.message ||
+          "Unable to continue with this customer"
+      );
     }
 
     saveSuccessfulSubmission({
@@ -248,8 +384,8 @@ export default function MainForm() {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
     if (isSubmitting) {
       return;
@@ -258,25 +394,36 @@ export default function MainForm() {
     setError("");
     setSuccessMsg("");
 
-    const validationError = validateForm();
+    const validationError =
+      validateForm();
 
     if (validationError) {
       setError(validationError);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+
       return;
     }
 
     const normalizedFormData = {
       ...formData,
-      customerName: formData.customerName.trim(),
+      customerName:
+        formData.customerName.trim(),
       spouseName:
         formData.maritalStatus === "Married"
           ? formData.spouseName.trim()
           : "",
       spouseDob:
-        formData.maritalStatus === "Married" ? formData.spouseDob : "",
+        formData.maritalStatus === "Married"
+          ? formData.spouseDob
+          : "",
       hasChildren:
-        formData.maritalStatus === "Married" ? formData.hasChildren : "",
+        formData.maritalStatus === "Married"
+          ? formData.hasChildren
+          : "",
       city: formData.city.trim()
     };
 
@@ -290,55 +437,88 @@ export default function MainForm() {
         : [];
 
     const payload = {
-      customerName: normalizedFormData.customerName,
-      mobileNumber: normalizedFormData.mobileNumber,
-      gender: normalizedFormData.gender,
-      dateOfBirth: normalizedFormData.dateOfBirth,
-      maritalStatus: normalizedFormData.maritalStatus,
-      spouseName: normalizedFormData.spouseName,
-      spouseDob: normalizedFormData.spouseDob,
+      customerName:
+        normalizedFormData.customerName,
+      mobileNumber:
+        normalizedFormData.mobileNumber,
+      gender:
+        normalizedFormData.gender,
+      dateOfBirth:
+        normalizedFormData.dateOfBirth,
+      maritalStatus:
+        normalizedFormData.maritalStatus,
+      spouseName:
+        normalizedFormData.spouseName,
+      spouseDob:
+        normalizedFormData.spouseDob,
       hasChildren:
-        normalizedFormData.maritalStatus === "Married"
-          ? normalizedFormData.hasChildren === "Yes"
+        normalizedFormData.maritalStatus ===
+        "Married"
+          ? normalizedFormData.hasChildren ===
+            "Yes"
           : false,
-      shoppingPreference: normalizedFormData.shoppingPreference,
-      city: normalizedFormData.city,
-      whatsappOptIn: Boolean(normalizedFormData.whatsappOptIn),
-      children: normalizedChildren.map((child) => ({
-        childName: child.name,
-        childDob: child.dob
-      }))
+      shoppingPreference:
+        normalizedFormData.shoppingPreference,
+      city:
+        normalizedFormData.city,
+      whatsappOptIn: Boolean(
+        normalizedFormData.whatsappOptIn
+      ),
+      children: normalizedChildren.map(
+        (child) => ({
+          childName: child.name,
+          childDob: child.dob
+        })
+      )
     };
 
     try {
       setIsSubmitting(true);
 
-      const response = await fetch(`${API_BASE_URL}/api/customers`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/customers`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+          body: JSON.stringify(payload)
+        }
+      );
 
-      const data = await response.json().catch(() => ({}));
+      const data = await response
+        .json()
+        .catch(() => ({}));
 
       if (response.status === 409) {
         await createExistingCustomerAccess({
           normalizedFormData,
           normalizedChildren
         });
+
         return;
       }
 
       if (!response.ok) {
-        setError(data.message || "Failed to submit form");
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        setError(
+          data.message ||
+            "Failed to submit form"
+        );
+
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+
         return;
       }
 
       if (!data.spinToken) {
-        setError("Spin access was not created. Please try again.");
+        setError(
+          "Spin access was not created. Please try again."
+        );
+
         return;
       }
 
@@ -349,8 +529,15 @@ export default function MainForm() {
         spinToken: data.spinToken
       });
     } catch (requestError) {
-      setError(requestError.message || "Unable to connect to server");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      setError(
+        requestError.message ||
+          "Unable to connect to server"
+      );
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -361,8 +548,14 @@ export default function MainForm() {
   };
 
   const handleReset = () => {
-    localStorage.removeItem("vandhana_user_form");
-    localStorage.removeItem("vandhana_reset");
+    localStorage.removeItem(
+      "vandhana_user_form"
+    );
+
+    localStorage.removeItem(
+      "vandhana_reset"
+    );
+
     setFormData(initialForm);
     setChildren([]);
     setIsFormSubmitted(false);
@@ -381,6 +574,7 @@ export default function MainForm() {
         <section className="mf-hero">
           <div className="mf-brand-row">
             <div className="mf-logo">V</div>
+
             <div className="mf-brand-text">
               <p>Vandhana Shopping Mall</p>
               <h1>Spin and Win</h1>
@@ -389,11 +583,19 @@ export default function MainForm() {
 
           <div className="mf-reward-card">
             <div className="mf-reward-content">
-              <span className="mf-pill">Exclusive Reward Entry</span>
-              <h2>Register now and unlock your spin reward</h2>
+              <span className="mf-pill">
+                Exclusive Reward Entry
+              </span>
+
+              <h2>
+                Register now and unlock your
+                spin reward
+              </h2>
+
               <p>
-                Complete your details below and spin the wheel to reveal your
-                reward.
+                Complete your details below
+                and spin the wheel to reveal
+                your reward.
               </p>
             </div>
 
@@ -401,16 +603,23 @@ export default function MainForm() {
               <div>
                 <span>Reward Pass</span>
                 <h3>Spin & Win</h3>
-                <p>Discounts and exciting gifts</p>
+                <p>
+                  Discounts and exciting gifts
+                </p>
               </div>
-              <div className="mf-ticket-badge">WIN</div>
+
+              <div className="mf-ticket-badge">
+                WIN
+              </div>
             </div>
           </div>
 
           <div className="mf-progress-card">
             <div
               className={`mf-progress-step ${
-                !isFormSubmitted ? "active" : "done"
+                !isFormSubmitted
+                  ? "active"
+                  : "done"
               }`}
             >
               <span>1</span>
@@ -440,35 +649,57 @@ export default function MainForm() {
         {!isFormSubmitted ? (
           <section className="mf-form-card">
             <div className="mf-form-head">
-              <span className="mf-section-badge">Step 1</span>
+              <span className="mf-section-badge">
+                Step 1
+              </span>
+
               <h3>Customer Registration</h3>
-              <p>Please enter the details carefully to continue.</p>
+
+              <p>
+                Please enter the details
+                carefully to continue.
+              </p>
             </div>
 
             {error ? (
-              <div className="mf-alert mf-alert-error">{error}</div>
+              <div className="mf-alert mf-alert-error">
+                {error}
+              </div>
             ) : null}
 
             {successMsg ? (
-              <div className="mf-alert mf-alert-success">{successMsg}</div>
+              <div className="mf-alert mf-alert-success">
+                {successMsg}
+              </div>
             ) : null}
 
-            <form className="mf-form" onSubmit={handleSubmit} noValidate>
+            <form
+              className="mf-form"
+              onSubmit={handleSubmit}
+              noValidate
+            >
               <div className="mf-panel">
                 <div className="mf-panel-head">
                   <div>
                     <h4>Basic Details</h4>
-                    <span>All fields are required</span>
+                    <span>
+                      All fields are required
+                    </span>
                   </div>
                 </div>
 
                 <div className="mf-grid">
                   <div className="mf-field">
-                    <label>Customer Name</label>
+                    <label>
+                      Customer Name
+                    </label>
+
                     <input
                       type="text"
                       name="customerName"
-                      value={formData.customerName}
+                      value={
+                        formData.customerName
+                      }
                       onChange={handleChange}
                       placeholder="Enter full name"
                       disabled={isSubmitting}
@@ -477,11 +708,16 @@ export default function MainForm() {
                   </div>
 
                   <div className="mf-field">
-                    <label>Mobile Number</label>
+                    <label>
+                      Mobile Number
+                    </label>
+
                     <input
                       type="text"
                       name="mobileNumber"
-                      value={formData.mobileNumber}
+                      value={
+                        formData.mobileNumber
+                      }
                       onChange={handleChange}
                       placeholder="10 digit mobile number"
                       disabled={isSubmitting}
@@ -492,46 +728,77 @@ export default function MainForm() {
 
                   <div className="mf-field">
                     <label>Gender</label>
+
                     <select
                       name="gender"
                       value={formData.gender}
                       onChange={handleChange}
                       disabled={isSubmitting}
                     >
-                      <option value="">Select gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
+                      <option value="">
+                        Select gender
+                      </option>
+
+                      <option value="Male">
+                        Male
+                      </option>
+
+                      <option value="Female">
+                        Female
+                      </option>
+
+                      <option value="Other">
+                        Other
+                      </option>
                     </select>
                   </div>
 
                   <div className="mf-field">
-                    <label>Date of Birth</label>
+                    <label>
+                      Date of Birth
+                    </label>
+
                     <input
                       type="date"
                       name="dateOfBirth"
-                      value={formData.dateOfBirth}
+                      value={
+                        formData.dateOfBirth
+                      }
                       onChange={handleChange}
                       disabled={isSubmitting}
                     />
                   </div>
 
                   <div className="mf-field">
-                    <label>Marital Status</label>
+                    <label>
+                      Marital Status
+                    </label>
+
                     <select
                       name="maritalStatus"
-                      value={formData.maritalStatus}
+                      value={
+                        formData.maritalStatus
+                      }
                       onChange={handleChange}
                       disabled={isSubmitting}
                     >
-                      <option value="">Select marital status</option>
-                      <option value="Single">Single</option>
-                      <option value="Married">Married</option>
+                      <option value="">
+                        Select marital status
+                      </option>
+
+                      <option value="Single">
+                        Single
+                      </option>
+
+                      <option value="Married">
+                        Married
+                      </option>
                     </select>
                   </div>
 
                   <div className="mf-field">
                     <label>City</label>
+
                     <input
                       type="text"
                       name="city"
@@ -544,77 +811,133 @@ export default function MainForm() {
                   </div>
 
                   <div className="mf-field mf-field-full">
-                    <label>Shopping Preference</label>
+                    <label>
+                      Shopping Preference
+                    </label>
+
                     <select
                       name="shoppingPreference"
-                      value={formData.shoppingPreference}
+                      value={
+                        formData.shoppingPreference
+                      }
                       onChange={handleChange}
                       disabled={isSubmitting}
                     >
-                      <option value="">Select shopping preference</option>
-                      <option value="Mens Wear">Mens Wear</option>
-                      <option value="Womens Wear">Womens Wear</option>
-                      <option value="Kids Wear">Kids Wear</option>
-                      <option value="Family Shopping">Family Shopping</option>
+                      <option value="">
+                        Select shopping preference
+                      </option>
+
+                      <option value="Mens Wear">
+                        Mens Wear
+                      </option>
+
+                      <option value="Womens Wear">
+                        Womens Wear
+                      </option>
+
+                      <option value="Kids Wear">
+                        Kids Wear
+                      </option>
+
+                      <option value="Family Shopping">
+                        Family Shopping
+                      </option>
                     </select>
                   </div>
                 </div>
               </div>
 
-              {formData.maritalStatus === "Married" ? (
+              {formData.maritalStatus ===
+              "Married" ? (
                 <div className="mf-panel mf-family-panel">
                   <div className="mf-panel-head">
                     <div>
-                      <h4>Family Details</h4>
-                      <span>Shown for married customers</span>
+                      <h4>
+                        {spouseRelation} Details
+                      </h4>
+
+                      <span>
+                        Shown for married
+                        customers
+                      </span>
                     </div>
                   </div>
 
                   <div className="mf-grid">
                     <div className="mf-field">
-                      <label>Wife Name</label>
+                      <label>
+                        {spouseRelation} Name
+                      </label>
+
                       <input
                         type="text"
                         name="spouseName"
-                        value={formData.spouseName}
+                        value={
+                          formData.spouseName
+                        }
                         onChange={handleChange}
-                        placeholder="Enter wife name"
+                        placeholder={`Enter ${spouseRelation.toLowerCase()} name`}
                         disabled={isSubmitting}
                       />
                     </div>
 
                     <div className="mf-field">
-                      <label>Wife Date of Birth</label>
+                      <label>
+                        {spouseRelation} Date of
+                        Birth
+                      </label>
+
                       <input
                         type="date"
                         name="spouseDob"
-                        value={formData.spouseDob}
+                        value={
+                          formData.spouseDob
+                        }
                         onChange={handleChange}
                         disabled={isSubmitting}
                       />
                     </div>
 
                     <div className="mf-field mf-field-full">
-                      <label>Any Children</label>
+                      <label>
+                        Any Children
+                      </label>
+
                       <select
                         name="hasChildren"
-                        value={formData.hasChildren}
+                        value={
+                          formData.hasChildren
+                        }
                         onChange={handleChange}
                         disabled={isSubmitting}
                       >
-                        <option value="">Select option</option>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
+                        <option value="">
+                          Select option
+                        </option>
+
+                        <option value="Yes">
+                          Yes
+                        </option>
+
+                        <option value="No">
+                          No
+                        </option>
                       </select>
                     </div>
                   </div>
 
-                  {formData.hasChildren === "Yes" ? (
+                  {formData.hasChildren ===
+                  "Yes" ? (
                     <div className="mf-children-wrap">
                       <div className="mf-children-head">
                         <div>
-                          <h5>Children Details</h5>
-                          <p>Add each child below</p>
+                          <h5>
+                            Children Details
+                          </h5>
+
+                          <p>
+                            Add each child below
+                          </p>
                         </div>
 
                         <button
@@ -628,59 +951,94 @@ export default function MainForm() {
                       </div>
 
                       <div className="mf-children-list">
-                        {children.map((child, index) => (
-                          <div className="mf-child-card" key={index}>
-                            <div className="mf-child-card-top">
-                              <span>Child {index + 1}</span>
+                        {children.map(
+                          (child, index) => (
+                            <div
+                              className="mf-child-card"
+                              key={index}
+                            >
+                              <div className="mf-child-card-top">
+                                <span>
+                                  Child {index + 1}
+                                </span>
 
-                              {children.length > 1 ? (
-                                <button
-                                  type="button"
-                                  className="mf-remove-btn"
-                                  onClick={() => removeChild(index)}
-                                  disabled={isSubmitting}
-                                >
-                                  Remove
-                                </button>
-                              ) : null}
-                            </div>
-
-                            <div className="mf-grid">
-                              <div className="mf-field">
-                                <label>Child Name</label>
-                                <input
-                                  type="text"
-                                  value={child.name}
-                                  onChange={(e) =>
-                                    handleChildChange(
-                                      index,
-                                      "name",
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="Enter child name"
-                                  disabled={isSubmitting}
-                                />
+                                {children.length >
+                                1 ? (
+                                  <button
+                                    type="button"
+                                    className="mf-remove-btn"
+                                    onClick={() =>
+                                      removeChild(
+                                        index
+                                      )
+                                    }
+                                    disabled={
+                                      isSubmitting
+                                    }
+                                  >
+                                    Remove
+                                  </button>
+                                ) : null}
                               </div>
 
-                              <div className="mf-field">
-                                <label>Child Date of Birth</label>
-                                <input
-                                  type="date"
-                                  value={child.dob}
-                                  onChange={(e) =>
-                                    handleChildChange(
-                                      index,
-                                      "dob",
-                                      e.target.value
-                                    )
-                                  }
-                                  disabled={isSubmitting}
-                                />
+                              <div className="mf-grid">
+                                <div className="mf-field">
+                                  <label>
+                                    Child Name
+                                  </label>
+
+                                  <input
+                                    type="text"
+                                    value={
+                                      child.name
+                                    }
+                                    onChange={(
+                                      event
+                                    ) =>
+                                      handleChildChange(
+                                        index,
+                                        "name",
+                                        event.target
+                                          .value
+                                      )
+                                    }
+                                    placeholder="Enter child name"
+                                    disabled={
+                                      isSubmitting
+                                    }
+                                  />
+                                </div>
+
+                                <div className="mf-field">
+                                  <label>
+                                    Child Date of
+                                    Birth
+                                  </label>
+
+                                  <input
+                                    type="date"
+                                    value={
+                                      child.dob
+                                    }
+                                    onChange={(
+                                      event
+                                    ) =>
+                                      handleChildChange(
+                                        index,
+                                        "dob",
+                                        event.target
+                                          .value
+                                      )
+                                    }
+                                    disabled={
+                                      isSubmitting
+                                    }
+                                  />
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        )}
                       </div>
                     </div>
                   ) : null}
@@ -691,13 +1049,16 @@ export default function MainForm() {
                 <input
                   type="checkbox"
                   name="whatsappOptIn"
-                  checked={formData.whatsappOptIn}
+                  checked={
+                    formData.whatsappOptIn
+                  }
                   onChange={handleChange}
                   disabled={isSubmitting}
                 />
 
                 <span>
-                  I agree to receive birthday wishes and offers from Vandhana
+                  I agree to receive birthday
+                  wishes and offers from Vandhana
                   Shopping Mall on WhatsApp.
                 </span>
               </label>
@@ -708,7 +1069,9 @@ export default function MainForm() {
                   className="mf-primary-btn"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Submitting..." : "Submit Form"}
+                  {isSubmitting
+                    ? "Submitting..."
+                    : "Submit Form"}
                 </button>
               </div>
             </form>
@@ -716,14 +1079,22 @@ export default function MainForm() {
         ) : (
           <section className="mf-success-wrap">
             <div className="mf-success-card">
-              <div className="mf-success-icon">✓</div>
-              <span className="mf-section-badge">Step 1 Completed</span>
+              <div className="mf-success-icon">
+                ✓
+              </div>
 
-              <h3>Registration Successful</h3>
+              <span className="mf-section-badge">
+                Step 1 Completed
+              </span>
+
+              <h3>
+                Registration Successful
+              </h3>
 
               <p>
-                Your details have been saved successfully. You can now continue
-                to the spin wheel.
+                Your details have been saved
+                successfully. You can now
+                continue to the spin wheel.
               </p>
 
               {customerId ? (
